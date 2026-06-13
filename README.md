@@ -36,6 +36,7 @@ v
 "Still here?" prompt fires at 2-hour mark
 
 |
+
 v
 
 If Yes(then session renewed) and If no then session termed as abandoned and librarian notified
@@ -84,6 +85,4 @@ or network drop never corrupts session state.
 ---
 
 
-```
 
----
