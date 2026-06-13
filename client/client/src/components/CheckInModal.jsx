@@ -1,41 +1,28 @@
 /**
- * CheckInModal.jsx
- * Drop in src/components/CheckInModal.jsx
- *
- * Styled like a library checkout card: cream "index card" on a dark
- * backdrop, mono font for the roll number, brass accent button.
- *
- * BUG FIX: previously called `await res.json()` directly, which throws
- * "Unexpected end of JSON input" whenever the response body is empty
- * (e.g. backend down, a 204, a proxy error page). Now uses postJSON()
- * from src/lib/api.js, which handles empty/invalid bodies gracefully.
+ * CheckInModal.jsx  —  src/components/CheckInModal.jsx
+ * Logic unchanged. Fonts use inline styles so they don't depend on
+ * tailwind.config.js having fontFamily entries set up.
  */
 import { useState } from 'react'
 import { postJSON } from '../lib/api'
 
 export default function CheckInModal({ desk, onClose, onSuccess }) {
   const [studentId, setStudentId] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
 
   async function handleSubmit() {
     const id = studentId.trim().toUpperCase()
-    if (!id) {
-      setError('Enter your roll number.')
-      return
-    }
-
+    if (!id) { setError('Enter your roll number.'); return }
     setLoading(true)
     setError('')
-
     try {
       const data = await postJSON('/api/checkin', { desk_id: desk.id, student_id: id })
-
       const session = {
-        deskId: desk.id,
-        studentId: id,
+        deskId:      desk.id,
+        studentId:   id,
         checkedInAt: data.checked_in_at,
-        expiresAt: data.expires_at,
+        expiresAt:   data.expires_at,
       }
       localStorage.setItem('deskguard_session', JSON.stringify(session))
       onSuccess(session)
@@ -47,65 +34,182 @@ export default function CheckInModal({ desk, onClose, onSuccess }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[#0e1611]/70 backdrop-blur-sm p-4"
-      onClick={onClose}
-    >
+    <>
+      {/* Load fonts reliably — not via Tailwind config */}
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Lora:wght@500;600&display=swap"
+      />
+
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-[#D4A24E]/30 bg-[#F3EFE6] p-6 shadow-2xl shadow-black/40
-                   before:absolute before:inset-x-6 before:top-0 before:h-px before:bg-[repeating-linear-gradient(90deg,#D4A24E_0_8px,transparent_8px_16px)]"
-        onClick={e => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: 'rgba(17,26,19,0.82)' }}
+        onClick={onClose}
       >
-        <button
-          className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-lg text-[#5B3A24]/60
-                     transition hover:bg-[#5B3A24]/10 hover:text-[#5B3A24]"
-          onClick={onClose}
-          aria-label="Close"
+        <div
+          className="relative w-full max-w-sm overflow-hidden rounded-2xl border"
+          style={{ background: '#F6F1E8', borderColor: 'rgba(80,50,20,0.14)' }}
+          onClick={e => e.stopPropagation()}
         >
-          ×
-        </button>
+          {/* Close */}
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full
+                       border-none text-sm transition"
+            style={{
+              background: 'rgba(80,50,20,0.08)',
+              color: 'rgba(70,40,15,0.45)',
+              cursor: 'pointer',
+            }}
+          >
+            ✕
+          </button>
 
-        <div className="mb-1 text-3xl">📚</div>
-        <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#5B3A24]/60">Library Card · Check-In</p>
-        <h2 className="mt-1 font-serif text-2xl font-bold text-[#3F2817]">
-          Desk {desk.label ?? desk.id}
-        </h2>
-        <p className="mt-1 text-sm text-[#5B3A24]/80">
-          Section {desk.section} &middot; Your session lasts 2 hours.
-        </p>
+          {/* Tape strip accent */}
+          <div
+            className="h-1.5 w-full"
+            style={{
+              background: 'repeating-linear-gradient(90deg,#c8a96e 0 6px,transparent 6px 12px)',
+              opacity: 0.5,
+            }}
+          />
 
-        <div className="my-5 h-px bg-[#5B3A24]/15" />
+          {/* Header */}
+          <div
+            className="px-5 py-5"
+            style={{ borderBottom: '1px solid rgba(80,50,20,0.1)' }}
+          >
+            <div className="mb-2.5 flex items-center gap-1.5">
+              <span
+                className="h-2 w-2 rounded-full flex-shrink-0"
+                style={{ background: '#3a7c36' }}
+              />
+              <span
+                className="text-[10px] uppercase tracking-[0.18em]"
+                style={{ color: 'rgba(70,40,15,0.5)', fontFamily: "'DM Mono', monospace" }}
+              >
+                Library card · Check-in
+              </span>
+            </div>
 
-        <label className="mb-1 block font-mono text-[11px] uppercase tracking-wider text-[#5B3A24]/70">
-          Roll number
-        </label>
-        <input
-          className="w-full rounded-lg border border-[#5B3A24]/25 bg-white/70 px-3 py-2.5 font-mono text-base text-[#3F2817]
-                     outline-none ring-0 transition focus:border-[#D4A24E] focus:ring-2 focus:ring-[#D4A24E]/40"
-          type="text"
-          placeholder="e.g. 220101234"
-          value={studentId}
-          maxLength={20}
-          onChange={e => setStudentId(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-          autoFocus
-        />
+            <h2
+              className="mb-1 text-[24px] leading-tight"
+              style={{
+                fontFamily: "'Lora', Georgia, serif",
+                fontWeight: 600,
+                color: '#1e0f05',
+              }}
+            >
+              Desk {desk.label ?? desk.id}
+            </h2>
+            <p
+              className="text-[12px] tracking-[0.04em]"
+              style={{ color: 'rgba(70,40,15,0.52)' }}
+            >
+              Section {desk.section}
+            </p>
+          </div>
 
-        {error && (
-          <p className="mt-2 rounded-md bg-[#E0675C]/10 px-3 py-2 text-sm text-[#C1453B]">
-            {error}
-          </p>
-        )}
+          {/* Body */}
+          <div className="px-5 pb-6 pt-5">
+            {/* Info pills */}
+            <div className="mb-5 grid grid-cols-2 gap-2.5">
+              {[
+                { label: 'Duration',   value: '2 hours' },
+                { label: 'Away pause', value: '20 min'  },
+              ].map(({ label, value }) => (
+                <div
+                  key={label}
+                  className="rounded-lg px-3 py-2.5"
+                  style={{
+                    background: '#EDE8DD',
+                    border: '1px solid rgba(80,50,20,0.1)',
+                  }}
+                >
+                  <p
+                    className="mb-1 text-[9px] uppercase tracking-[0.16em]"
+                    style={{ color: 'rgba(70,40,15,0.45)' }}
+                  >
+                    {label}
+                  </p>
+                  <p className="text-[14px] font-medium" style={{ color: '#2a1506' }}>
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
 
-        <button
-          className="mt-5 w-full rounded-lg bg-[#3F2817] py-2.5 font-semibold text-[#F3EFE6] transition
-                     hover:bg-[#2A1C10] disabled:cursor-not-allowed disabled:opacity-60"
-          onClick={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? 'Stamping card…' : 'Confirm Check-In'}
-        </button>
+            {/* Roll number field */}
+            <label
+              className="mb-1.5 block text-[10px] uppercase tracking-[0.14em]"
+              style={{ color: 'rgba(70,40,15,0.5)', fontFamily: "'DM Mono', monospace" }}
+            >
+              Roll number
+            </label>
+            <input
+              type="text"
+              placeholder="e.g. 220101234"
+              value={studentId}
+              maxLength={20}
+              autoFocus
+              onChange={e => setStudentId(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+              className="w-full rounded-lg px-3 py-2.5 text-[14px] outline-none transition"
+              style={{
+                background: 'rgba(255,255,255,0.75)',
+                border: '1px solid rgba(80,50,20,0.2)',
+                color: '#1e0f05',
+                fontFamily: "'DM Mono', monospace",
+              }}
+              onFocus={e => {
+                e.target.style.borderColor = '#8B5E3C'
+                e.target.style.boxShadow = '0 0 0 3px rgba(139,94,60,0.14)'
+              }}
+              onBlur={e => {
+                e.target.style.borderColor = 'rgba(80,50,20,0.2)'
+                e.target.style.boxShadow = 'none'
+              }}
+            />
+
+            {error && (
+              <p
+                className="mt-2.5 rounded-lg px-3 py-2 text-[13px]"
+                style={{
+                  background: '#FCEBEB',
+                  border: '1px solid rgba(163,45,45,0.2)',
+                  color: '#791F1F',
+                }}
+              >
+                {error}
+              </p>
+            )}
+
+            <div
+              className="my-4 h-px"
+              style={{ background: 'rgba(80,50,20,0.1)' }}
+            />
+
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full rounded-lg py-3 text-[13px] font-medium tracking-[0.06em] transition
+                         disabled:cursor-not-allowed disabled:opacity-50"
+              style={{
+                background: '#1e0f05',
+                color: '#F6F1E8',
+                border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+              onMouseEnter={e => { if (!loading) e.target.style.background = '#100800' }}
+              onMouseLeave={e => { e.target.style.background = '#1e0f05' }}
+            >
+              {loading ? 'Stamping card…' : 'Confirm check-in'}
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
